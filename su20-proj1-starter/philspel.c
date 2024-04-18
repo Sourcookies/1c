@@ -71,6 +71,11 @@ int main(int argc, char **argv) {
 unsigned int stringHash(void *s) {
   char *string = (char *)s;
   // -- TODO --
+  unsigned hash = 0;
+  for (size_t i = 0; i < strlen(string); i++) {
+      hash = hash * 31 + string[i];         //加上当前字符的 ASCII 码值.
+  }
+  return hash % 2255;   //计算字符串的哈希值.
 }
 
 /*
@@ -81,6 +86,7 @@ int stringEquals(void *s1, void *s2) {
   char *string1 = (char *)s1;
   char *string2 = (char *)s2;
   // -- TODO --
+  return strcmp(string1, string2) == 0;
 }
 
 /*
@@ -101,6 +107,36 @@ int stringEquals(void *s1, void *s2) {
  */
 void readDictionary(char *dictName) {
   // -- TODO --
+    FILE* dict = fopen(dictName, "r");
+    if (dict == NULL) {
+        fprintf(stderr, "Dictionary file does not exist\n");
+        exit(1);
+    }
+    size_t maxWordLength = 60;
+    char* wordBuffer = malloc(sizeof(char) * (maxWordLength + 1));
+    wordBuffer[0] = '\0';
+    for (char charBuffer = fgetc(dict);; charBuffer = fgetc(dict)) {
+        size_t wordLength = strlen(wordBuffer);
+        if (charBuffer == '\n' || charBuffer == EOF) {
+            char* word = malloc(sizeof(char) * (wordLength + 1));
+            strcpy(word, wordBuffer);
+            insertData(dictionary, word, word);
+            if (charBuffer == EOF) {
+                break;
+            }
+            wordBuffer[0] = '\0';
+        }
+        else {
+            if (wordLength == maxWordLength) {
+                maxWordLength *= 1.5;
+                wordBuffer = realloc(wordBuffer, sizeof(char) * (maxWordLength + 1));
+            }
+            wordBuffer[wordLength] = charBuffer;
+            wordBuffer[wordLength + 1] = '\0';
+        }
+    }
+    free(wordBuffer);
+    fclose(dict);
 }
 
 /*
@@ -125,5 +161,55 @@ void readDictionary(char *dictName) {
  * final 20% of your grade, you cannot assume words have a bounded length.
  */
 void processInput() {
-  // -- TODO --
-}
+    // -- TODO --
+    size_t maxWordLength = 60;
+    char* wordBuffer = malloc(sizeof(char) * (maxWordLength + 1));
+    wordBuffer[0] = '\0';
+    for (char charBuffer = getchar();; charBuffer = getchar()) {
+        size_t wordLength = strlen(wordBuffer);
+        if (isalpha(charBuffer)) {
+            if (wordLength == maxWordLength) {
+                maxWordLength *= 1.5;
+                wordBuffer = realloc(wordBuffer, sizeof(char) * (maxWordLength + 1));
+            }
+            wordBuffer[wordLength] = charBuffer;
+            wordBuffer[wordLength + 1] = '\0';
+        }
+        else {
+            if (wordLength > 0) {
+                char word[wordLength + 1];
+                strcpy(word, wordBuffer);
+                int matched = 0;
+                if (findData(dictionary, wordBuffer) != NULL) {
+                    matched = 1;
+                }
+                else {
+                    for (int i = 1; i < wordLength; i++) {
+                        wordBuffer[i] = tolower(wordBuffer[i]);
+                    }
+                    if (findData(dictionary, wordBuffer) != NULL) {
+                        matched = 1;
+                    }
+                    else {
+                        wordBuffer[0] = tolower(wordBuffer[0]);
+                        if (findData(dictionary, wordBuffer) != NULL) {
+                            matched = 1;
+                        }
+                    }
+                }
+                if (matched) {
+                    printf("%s", word);
+                }
+                else {
+                    printf("%s [sic]", word);
+                }
+                wordBuffer[0] = '\0';
+            }
+            if (charBuffer == EOF) {
+                break;
+            }
+            printf("%c", charBuffer);
+        }
+    }
+    free(wordBuffer);
+   }
